@@ -1,0 +1,25 @@
+{
+    "git": {
+        "commitMessage": "chore(release): ${version} [skip ci]",
+        "tagName": "v${version}",
+        "tagAnnotation": "Release v${version}",
+        "requireBranch": "production",
+        "requireCleanWorkingDir": false
+    },
+    "github": {
+        "release": true,
+        "releaseName": "Release ${version}",
+        "skipAssets": true,
+        "draft": false,
+        "prerelease": false
+    },
+    "npm": {
+        "publish": false
+    },
+    "plugins": {
+        "@release-it/conventional-changelog": {
+            "infile": "CHANGELOG.md",
+            "preset": "angular"
+        }
+    }
+}
