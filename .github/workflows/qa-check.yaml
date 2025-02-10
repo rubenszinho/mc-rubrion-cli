@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: lts/*
+          go-version: 1.23
 
       - name: Configure Go Module Cache
         run: |
