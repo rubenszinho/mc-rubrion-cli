@@ -78,7 +78,10 @@ func createDiscordMessage(msg string) error {
 		return err
 	}
 
-	os.MkdirAll(os.ExpandEnv("$HOME/minecraft/scripts"), 0755)
+	if err := os.MkdirAll(os.ExpandEnv("$HOME/minecraft/scripts"), 0755); err != nil {
+		fmt.Printf("Failed to create scripts directory: %v\n", err)
+	}
+
 	return os.WriteFile(messageIDFile, []byte(messageID), 0644)
 }
 

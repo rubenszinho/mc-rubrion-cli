@@ -15,10 +15,14 @@ var AddModCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		url := args[0]
 		fmt.Println("📦 Downloading mod from:", url)
-		utils.RunCommand("wget", "-P", "~/minecraft/mods", url)
+		if err := utils.RunCommand("wget", "-P", "~/minecraft/mods", url); err != nil {
+			fmt.Printf("Failed to download mod: %v\n", err)
+		}
 
 		fmt.Println("✅ Mod installed! Restart the server using 'mc-rubrion-cli restart'.")
 
-		discord.UpdateDiscordStatus()
+		if err := discord.UpdateDiscordStatus(); err != nil {
+			fmt.Printf("Failed to update Discord status: %v\n", err)
+		}
 	},
 }

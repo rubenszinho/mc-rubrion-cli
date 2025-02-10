@@ -13,9 +13,14 @@ var StartCmd = &cobra.Command{
 	Short: "Start the Minecraft server",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("🚀 Starting Minecraft Server...")
-		utils.RunCommand("docker-compose", "up", "-d")
+		if err := utils.RunCommand("docker-compose", "up", "-d"); err != nil {
+			fmt.Printf("❌ Failed to start the server: %v\n", err)
+			return
+		}
 		fmt.Println("✅ Minecraft Server Started!")
 
-		discord.UpdateDiscordStatus()
+		if err := discord.UpdateDiscordStatus(); err != nil {
+			fmt.Printf("Failed to update Discord status: %v\n", err)
+		}
 	},
 }

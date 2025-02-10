@@ -13,9 +13,14 @@ var StopCmd = &cobra.Command{
 	Short: "Stop the Minecraft server",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("🛑 Stopping Minecraft Server...")
-		utils.RunCommand("docker-compose", "down")
+		if err := utils.RunCommand("docker-compose", "down"); err != nil {
+			fmt.Printf("❌ Failed to stop the server: %v\n", err)
+			return
+		}
 		fmt.Println("✅ Minecraft Server Stopped!")
 
-		discord.UpdateDiscordStatus()
+		if err := discord.UpdateDiscordStatus(); err != nil {
+			fmt.Printf("Failed to update Discord status: %v\n", err)
+		}
 	},
 }

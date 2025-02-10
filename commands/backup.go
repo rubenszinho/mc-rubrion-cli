@@ -15,13 +15,20 @@ var BackupCmd = &cobra.Command{
 	Short: "Backup the Minecraft world data",
 	Run: func(cmd *cobra.Command, args []string) {
 		timestamp := time.Now().Format("20060102_150405")
-		utils.RunCommand("mkdir", "-p", "~/minecraft/backups")
+
+		if err := utils.RunCommand("mkdir", "-p", "~/minecraft/backups"); err != nil {
+			fmt.Printf("Failed to create backups directory: %v\n", err)
+		}
 
 		backupPath := fmt.Sprintf("~/minecraft/backups/world_backup_%s", timestamp)
 		fmt.Println("💾 Backing up Minecraft world...")
-		utils.RunCommand("docker", "cp", "mc_server:/data", backupPath)
+		if err := utils.RunCommand("docker", "cp", "mc_server:/data", backupPath); err != nil {
+			fmt.Printf("Failed to copy world data: %v\n", err)
+		}
 		fmt.Println("✅ Backup saved at", backupPath)
 
-		discord.UpdateDiscordStatus()
+		if err := discord.UpdateDiscordStatus(); err != nil {
+			fmt.Printf("Failed to update Discord status after backup: %v\n", err)
+		}
 	},
 }
