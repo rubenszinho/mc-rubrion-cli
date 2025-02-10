@@ -1,0 +1,109 @@
+name: Production Release Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.RUBRION_APP_ID }}
+          private-key: ${{ secrets.RUBRION_APP_SECRET }}
+
+      - name: Set Git User Identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Checkout Repository (Production Branch)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Rebase Develop onto Production
+        run: |
+          git fetch origin develop
+          git checkout develop
+          git pull origin develop
+          git checkout production
+          git rebase develop || exit 1
+          git push --force-with-lease origin production
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install release-it
+        run: npm install -g release-it @release-it/conventional-changelog
+
+      - name: Set Up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: lts/*
+
+      - name: Ensure Go Module is Up to Date
+        run: |
+          go mod tidy
+          git add go.mod go.sum
+          git commit -m "chore: update go module dependencies [skip ci]" || echo "No changes to commit"
+
+      - name: Run Release Process (Tag, Changelog, GitHub Release)
+        id: release_it
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: release-it --ci
+
+      - name: Push Tags Created by Release-it
+        run: |
+          git push origin --tags
+
+      - name: Get Latest Tag
+        id: get_tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "Discovered latest tag: $LATEST_TAG"
+
+      - name: Build Cross-Platform Binaries
+        run: |
+          VERSION="${{ env.LATEST_TAG#v }}"
+          echo "Building CLI for version $VERSION"
+
+          mkdir -p dist
+
+          GOOS=linux GOARCH=amd64 \
+            go build -o dist/mc-rubrion-cli-linux \
+            -ldflags="\
+              -X 'mc-rubrion-cli/commands.CurrentVersion=${VERSION}'" \
+            main.go
+
+          GOOS=windows GOARCH=amd64 \
+            go build -o dist/mc-rubrion-cli.exe \
+            -ldflags="\
+              -X 'mc-rubrion-cli/commands.CurrentVersion=${VERSION}'" \
+            main.go
+
+          GOOS=darwin GOARCH=amd64 \
+            go build -o dist/mc-rubrion-cli-mac \
+            -ldflags="\
+              -X 'mc-rubrion-cli/commands.CurrentVersion=${VERSION}'" \
+            main.go
+
+      - name: Upload Artifacts to Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ steps.app-token.outputs.token }}
+          file: |
+            dist/mc-rubrion-cli-linux
+            dist/mc-rubrion-cli.exe
+            dist/mc-rubrion-cli-mac
+          asset_name: "${{ env.LATEST_TAG }}-{{ item }}"
+          tag: ${{ env.LATEST_TAG }}
